@@ -1,24 +1,78 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema({
-    room :{
+
+    room: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Room',
+        ref: "Room",
         required: true
     },
-    user:{  //sender
+
+    user: { 
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: "User",
         required: true
     },
-    text:{
+
+    type: {
         type: String,
-        required: true,
+        enum: [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "file",
+            "link"
+        ],
+        default: "text"
+    },
+
+    text: {
+        type: String,
         trim: true,
-        maxlength: 5000
+        default: ""
+    },
+
+    fileUrl: {
+        type: String,
+        default: ""
+    },
+
+    fileName: {
+        type: String,
+        default: ""
+    },
+
+    fileSize: {
+        type: Number,
+        default: 0
+    },
+
+    mimeType: {
+        type: String,
+        default: ""
+    },
+
+    duration: {
+        type: Number,
+        default: 0
+    },
+
+    thumbnail: { //Preview image for videos
+        type: String,
+        default: ""
+    },
+
+    isEdited: {
+        type: Boolean,
+        default: false
+    },
+
+    isDeleted: {
+        type: Boolean,
+        default: false
     }
-}, {timestamps: true});
 
-const Message = mongoose.model('Message', messageSchema);
+}, { timestamps: true });
 
-module.exports = Message;
+module.exports = mongoose.model("Message", messageSchema);

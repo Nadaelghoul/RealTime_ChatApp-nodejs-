@@ -7,9 +7,11 @@ const http = require('http');
 const {Server} = require('socket.io');
 const authRoutes = require('./routes/auth');
 const roomRoutes = require('./routes/rooms');
+const notificationRoutes = require("./routes/notifications");
 const User = require("./models/User");
 const Message = require("./models/Message");
 const path = require("path");
+const Notification = require("./models/Notification");
 
 const app = express();
 const server = http.createServer(app)
@@ -30,6 +32,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/api/rooms", roomRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
@@ -103,7 +106,8 @@ io.on('connection', (socket)=>{
 
       // ارسال رسالة
       socket.on('send-message', async (data) => {  //create an event named as send-message and data from frontend
-        const { roomId, text } = data || {};
+        const { roomId,type ,text,fileUrl,fileName,mimeType, duration } = data || {};
+       
         if(!roomId || !text?.trim()){
           socket.emit('error', 'Room ID and message text are required');
           return;
@@ -117,12 +121,78 @@ io.on('connection', (socket)=>{
           const message = await Message.create({
             room: roomId,
             user: socket.data.userId,
+            type,
             text: text.trim(),
-          })
+           fileUrl,
+           fileName,
+           mimeType,
+           duration
+            
+          });
 
           const populated = await Message.findById(message._id)   //populated will contain the message and username and displayname
           .populate("user", "username displayName avatar")
           .lean();
+
+          const room = await Room.findById(roomId);
+
+    //create notification
+if (room.type === "dm") {
+
+    const receiverId = room.members.find(
+        member => member.toString() !== socket.data.userId
+    );
+
+    const notification = await Notification.create({
+        recipient: receiverId,
+        sender: socket.data.userId,
+        room: roomId,
+        message: message._id,
+        type: "message"
+    });
+
+    const receiverSocket = onlineUsers.get(receiverId.toString());
+
+    if (receiverSocket) {
+        io.to(receiverSocket).emit("new-notification", {
+            _id: notification._id,
+            roomId,
+            sender: populated.user,
+            text: message.text,
+            createdAt: notification.createdAt
+        });
+    }
+
+} else {
+
+    // Group notifications
+    for (const member of room.members) {
+
+        if (member.toString() === socket.data.userId) {
+            continue;
+        }
+
+        const notification = await Notification.create({
+            recipient: member,
+            sender: socket.data.userId,
+            room: roomId,
+            message: message._id,
+            type: "message"
+        });
+
+        const memberSocket = onlineUsers.get(member.toString());
+
+        if (memberSocket) {
+            io.to(memberSocket).emit("new-notification", {
+                _id: notification._id,
+                roomId,
+                sender: populated.user,
+                text: message.text,
+                createdAt: notification.createdAt
+            });
+        }
+    }
+}
 
           io.to(roomId).emit('new-message', populated);  // to method to send(emit) by roomid event named new-message contain populated
         } catch (error) {

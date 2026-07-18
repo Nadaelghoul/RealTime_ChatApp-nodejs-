@@ -1,2 +1,0 @@
-1.notification model
-2. send voice record , images , videos not only textMessages
