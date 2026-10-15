@@ -9,4 +9,8 @@
 
 ## Socket.io (الاتصال مع التوكين)
 
+(events)
 - join-room - {roomId} => السيرفر هيرد joined-room {roomId}
+- send-message -{roomId , text}
+- typing-start {roomId}
+- typing-stop {roomId}

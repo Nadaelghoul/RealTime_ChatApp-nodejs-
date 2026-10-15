@@ -44,7 +44,7 @@ app.set('io', io);
 const onlineUsers = new Map();   //const onlineUsers = new Set(); // تخزين اونلاين
 
 io.on('connection', (socket)=>{
- const token = socket.handshake.query.token;
+ const token = socket.handshake.query.token; // token sent from frontend when connecting to socket in the query parameter
 
   if(!token){
     socket.emit('error', 'Authentication error: No token provided');
@@ -87,7 +87,7 @@ io.on('connection', (socket)=>{
             socket.emit('error', 'Room not found');
             return;
           }
-          if(room.isPrivate){
+          if(room.type === "dm" || room.isPrivate){
             const isMember= room.members?.some(
               (m) => m.toString() === socket.data.userId
             );
@@ -96,10 +96,15 @@ io.on('connection', (socket)=>{
               return;
              }
              await socket.join(roomId);
-             socket.emit('joined-room', { roomId });
-             console.log(`User ${socket.data.user.username} joined private room ${room.name}`);
+             socket.emit('joined-room', {
+             roomId: room._id.toString(),
+             type: room.type,
+             isPrivate: room.isPrivate
+             });
+             console.log(`User ${socket.data.user.username} joined ${room.name}`);
           }
         } catch (error) {
+           console.error("Join room error:", error);
           socket.emit('error', 'Error occurred while joining room: ' + error.message);
         }
       })
@@ -116,6 +121,22 @@ io.on('connection', (socket)=>{
           socket.emit('error', 'Authentication error: User not authenticated');
           return;
         }
+
+         const room = await Room.findById(roomId);
+
+         if (!room) {
+          socket.emit("error", "Room not found");
+          return;
+        }
+
+        const isMember = room.members.some(
+         (member) => member.toString() === socket.data.userId
+         );
+
+    if (((room.type === "dm" || room.isPrivate) && !isMember) || !socket.rooms.has(room._id.toString())) {
+           socket.emit("error", "Access denied: Join an authorized room first");
+          return;
+         }
 
         try {
           const message = await Message.create({
@@ -134,7 +155,6 @@ io.on('connection', (socket)=>{
           .populate("user", "username displayName avatar")
           .lean();
 
-          const room = await Room.findById(roomId);
 
     //create notification
 if (room.type === "dm") {

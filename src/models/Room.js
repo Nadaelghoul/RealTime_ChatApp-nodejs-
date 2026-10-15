@@ -22,7 +22,7 @@ const roomSchema  = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    isPrivate:{
+    isPrivate:{  //dm or private group
         type: Boolean,
         default: false
     },
