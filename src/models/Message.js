@@ -8,7 +8,7 @@ const messageSchema = new mongoose.Schema({
         required: true
     },
 
-    user: { 
+    user: {  // Sender of the message
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
@@ -33,12 +33,12 @@ const messageSchema = new mongoose.Schema({
         default: ""
     },
 
-    fileUrl: {
+    fileUrl: {  // URL of the file (image, video, audio, etc.)
         type: String,
         default: ""
     },
 
-    fileName: {
+    fileName: { // name of file shown to the user
         type: String,
         default: ""
     },
@@ -48,12 +48,12 @@ const messageSchema = new mongoose.Schema({
         default: 0
     },
 
-    mimeType: {
+    mimeType: { // type of file (image/jpeg, video/mp4, audio/mpeg, etc.)
         type: String,
         default: ""
     },
 
-    duration: {
+    duration: { // Duration of the media file in seconds (for audio and video)
         type: Number,
         default: 0
     },
